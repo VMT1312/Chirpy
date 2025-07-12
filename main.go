@@ -14,9 +14,9 @@ func main() {
 
 	mux.HandleFunc("GET /api/healthz", healthCheckHandler)
 
-	mux.HandleFunc("GET /api/metrics", apiCfg.getFileserverHits)
+	mux.HandleFunc("GET /admin/metrics", apiCfg.getFileserverHits)
 
-	mux.HandleFunc("POST /api/reset", apiCfg.resetServerHits)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetServerHits)
 
 	server := &http.Server{
 		Handler: mux,
@@ -46,7 +46,17 @@ func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
 }
 
 func (cfg *apiConfig) getFileserverHits(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(fmt.Sprintf("Hits: %d", cfg.fileserverHits.Load())))
+	w.Header().Set("Content-Type", "text/html")
+	w.Write([]byte(fmt.Sprintf(
+		`<html>
+  			<body>
+				<h1>Welcome, Chirpy Admin</h1>
+				<p>Chirpy has been visited %d times!</p>
+			</body>
+		</html>`,
+		cfg.fileserverHits.Load(),
+	)),
+	)
 }
 
 func (cfg *apiConfig) resetServerHits(w http.ResponseWriter, r *http.Request) {
