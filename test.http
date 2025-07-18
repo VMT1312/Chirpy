@@ -1,3 +1,6 @@
+### Reset the database
+POST http://localhost:8080/admin/reset
+
 ### Test create user (should return 201)
 POST http://localhost:8080/api/users
 Content-Type: application/json
@@ -12,5 +15,17 @@ Content-Type: application/json
 
 {
   "body": "If you're committed enough, you can make any story work.",
-  "user_id": "${userID1}"
+  "user_id": "19bf343e-387b-4db7-a36e-00a43bbf25b2"
 }
+
+### Create another chirp (should return 201)
+POST http://localhost:8080/api/chirps
+Content-Type: application/json
+
+{
+  "body": "I once told a woman I was Kevin Costner, and it worked because I believed it.",
+  "user_id": "19bf343e-387b-4db7-a36e-00a43bbf25b2"
+}
+
+### Test get all chirps (should return 200)
+GET http://localhost:8080/api/chirps
