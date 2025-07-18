@@ -3,20 +3,30 @@ POST http://localhost:8080/api/validate_chirp
 Content-Type: application/json
 
 {
-  "body": "This is a valid chirp that's under 140 characters"
+  "body": "I had something interesting for breakfast"
 }
 
-### Test invalid chirp (should return 400)
+### Test with multiple key in a map (should only parse through body)
 POST http://localhost:8080/api/validate_chirp
 Content-Type: application/json
 
 {
-  "body": "This is a very long chirp that exceeds the 140 character limit. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris."
+  "body": "I hear Mastodon is better than Chirpy. sharbert I need to migrate",
+  "extra": "this should be ignored"
 }
 
-### Test malformed JSON (should return 400)
+### Test kerfuffle banned word (should return 200 with cleaned body)
 POST http://localhost:8080/api/validate_chirp
 Content-Type: application/json
 
 {
-  "body": "missing closing quote and brace
+  "body": "I really need a kerfuffle to go to bed sooner, Fornax !"
+}
+
+### Test longer than 140 characters (should return 400)
+POST http://localhost:8080/api/validate_chirp
+Content-Type: application/json
+
+{
+  "body": "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+}
