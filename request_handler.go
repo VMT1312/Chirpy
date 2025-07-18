@@ -6,10 +6,6 @@ import (
 	"strings"
 )
 
-type parameter struct {
-	Body string `json:"body"`
-}
-
 type successRes struct {
 	Clean_body string `json:"cleaned_body"`
 }

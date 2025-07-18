@@ -11,6 +11,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type parameter struct {
+	Body  string `json:"body"`
+	Email string `json:"email"`
+}
+
 func main() {
 	godotenv.Load(".env")
 
@@ -24,7 +29,8 @@ func main() {
 
 	mux := http.NewServeMux()
 	apiCfg := &apiConfig{
-		database: dbQueries,
+		db:       dbQueries,
+		platform: os.Getenv("PLATFORM"),
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir("./app")))))
@@ -33,7 +39,9 @@ func main() {
 
 	mux.HandleFunc("GET /admin/metrics", apiCfg.getFileserverHits)
 
-	mux.HandleFunc("POST /admin/reset", apiCfg.resetServerHits)
+	mux.HandleFunc("POST /admin/reset", apiCfg.resetUserTable)
+
+	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
 	mux.HandleFunc("POST /api/validate_chirp", requestHandler)
 
