@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 type parameter struct {
@@ -10,11 +11,7 @@ type parameter struct {
 }
 
 type successRes struct {
-	Valid bool `json:"valid"`
-}
-
-type failRes struct {
-	Error string `json:"error"`
+	Clean_body string `json:"cleaned_body"`
 }
 
 func requestHandler(w http.ResponseWriter, r *http.Request) {
@@ -22,36 +19,25 @@ func requestHandler(w http.ResponseWriter, r *http.Request) {
 
 	params := parameter{}
 	if err := decoder.Decode(&params); err != nil {
-		res := failRes{Error: "Something went wrong"}
-		if dat, err := json.Marshal(res); err != nil {
-			http.Error(w, "Error encoding response", http.StatusInternalServerError)
-			return
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write(dat)
-		}
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	if len(params.Body) <= 140 {
-		res := successRes{Valid: true}
-		if dat, err := json.Marshal(res); err != nil {
-			http.Error(w, "Error encoding response", http.StatusInternalServerError)
-			return
-		} else {
-			w.WriteHeader(http.StatusOK)
-			w.Write(dat)
+		words := strings.Split(params.Body, " ")
+		for i, word := range words {
+			word = strings.ToLower(word)
+			if _, ok := bannedWords[word]; ok {
+				words[i] = "****"
+			}
 		}
-	} else {
-		res := failRes{Error: "Chirp is too long"}
-		if dat, err := json.Marshal(res); err != nil {
-			http.Error(w, "Error encoding response", http.StatusInternalServerError)
-			return
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write(dat)
-		}
-	}
 
+		res := successRes{
+			Clean_body: strings.Join(words, " "),
+		}
+		respondWithJson(w, http.StatusOK, res)
+		return
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Body exceeds 140 characters")
+	}
 }
