@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/VMT1312/Chirpy/internal/database"
@@ -75,4 +76,46 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	respondWithJson(w, http.StatusCreated, user)
+}
+
+func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	params := parameter{}
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if len(params.Body) <= 140 {
+		words := strings.Split(params.Body, " ")
+		for i, word := range words {
+			word = strings.ToLower(word)
+			if _, ok := bannedWords[word]; ok {
+				words[i] = "****"
+			}
+		}
+	} else {
+		respondWithError(w, http.StatusBadRequest, "Body exceeds 140 characters")
+	}
+
+	arg := database.CreateChirpParams{
+		Body:   params.Body,
+		UserID: params.USERID,
+	}
+
+	dbChirp, err := cfg.db.CreateChirp(r.Context(), arg)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create chirp")
+		return
+	}
+
+	chirp := Chirp{
+		ID:        dbChirp.ID,
+		CreatedAt: dbChirp.CreatedAt,
+		UpdatedAt: dbChirp.UpdatedAt,
+		Body:      dbChirp.Body,
+		UserID:    dbChirp.UserID,
+	}
+	respondWithJson(w, http.StatusCreated, chirp)
 }

@@ -7,13 +7,15 @@ import (
 	"os"
 
 	"github.com/VMT1312/Chirpy/internal/database"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
 
 type parameter struct {
-	Body  string `json:"body"`
-	Email string `json:"email"`
+	Body   string    `json:"body"`
+	Email  string    `json:"email"`
+	USERID uuid.UUID `json:"user_id"`
 }
 
 func main() {
@@ -43,7 +45,7 @@ func main() {
 
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
-	mux.HandleFunc("POST /api/validate_chirp", requestHandler)
+	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
 
 	server := &http.Server{
 		Handler: mux,
