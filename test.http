@@ -1,48 +1,16 @@
-### Test valid chirp (should return 200)
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-  "body": "I had something interesting for breakfast"
-}
-
-### Test with multiple key in a map (should only parse through body)
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-  "body": "I hear Mastodon is better than Chirpy. sharbert I need to migrate",
-  "extra": "this should be ignored"
-}
-
-### Test kerfuffle banned word (should return 200 with cleaned body)
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-  "body": "I really need a kerfuffle to go to bed sooner, Fornax !"
-}
-
-### Test longer than 140 characters (should return 400)
-POST http://localhost:8080/api/validate_chirp
-Content-Type: application/json
-
-{
-  "body": "lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
-}
-
 ### Test create user (should return 201)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-  "email": "mloneusk@example.co"
+  "email": "saul@bettercall.com"
 }
 
-### Test creat another user (should return 201)
-POST http://localhost:8080/api/users
+### Test create chirp (should return 201)
+POST http://localhost:8080/api/chirps
 Content-Type: application/json
 
 {
-  "email": "dackjorsey@example.co"
+  "body": "If you're committed enough, you can make any story work.",
+  "user_id": "${userID1}"
 }
