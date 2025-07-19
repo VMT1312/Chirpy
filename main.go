@@ -13,11 +13,10 @@ import (
 )
 
 type parameter struct {
-	Body      string    `json:"body"`
-	Email     string    `json:"email"`
-	USERID    uuid.UUID `json:"user_id"`
-	Password  string    `json:"password"`
-	ExpiresIn int64     `json:"expires_in_seconds"`
+	Body     string    `json:"body"`
+	Email    string    `json:"email"`
+	USERID   uuid.UUID `json:"user_id"`
+	Password string    `json:"password"`
 }
 
 func main() {
@@ -55,6 +54,10 @@ func main() {
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
 
 	mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
+
+	mux.HandleFunc("POST /api/refresh", apiCfg.refreshTokenHandler)
+
+	mux.HandleFunc("POST /api/revoke", apiCfg.revokeTokenHandler)
 
 	server := &http.Server{
 		Handler: mux,

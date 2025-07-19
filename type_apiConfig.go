@@ -223,26 +223,96 @@ func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tokenDuration := time.Duration(params.ExpiresIn) * time.Second
-	if tokenDuration == 0 || tokenDuration > time.Hour {
-		tokenDuration = time.Hour
-	} else {
-		tokenDuration = time.Hour
-	}
-
-	token, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, tokenDuration)
+	token, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create JWT token")
 		return
 	}
 
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token")
+		return
+	}
+
+	arg := database.CreateRefreshTokenParams{
+		Token:  refreshToken,
+		UserID: dbUser.ID,
+	}
+
+	refreshTokenDB, err := cfg.db.CreateRefreshToken(r.Context(), arg)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token in database")
+		return
+	}
+
 	user := User{
-		ID:        dbUser.ID,
-		CreatedAt: dbUser.CreatedAt,
-		UpdatedAt: dbUser.UpdatedAt,
-		Email:     dbUser.Email,
-		Token:     token,
+		ID:           dbUser.ID,
+		CreatedAt:    dbUser.CreatedAt,
+		UpdatedAt:    dbUser.UpdatedAt,
+		Email:        dbUser.Email,
+		Token:        token,
+		RefreshToken: refreshTokenDB.Token,
 	}
 
 	respondWithJson(w, http.StatusOK, user)
+}
+
+func (cfg *apiConfig) refreshTokenHandler(w http.ResponseWriter, r *http.Request) {
+	bearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized: "+err.Error())
+		return
+	}
+
+	dbToken, err := cfg.db.GetRefreshTokenByToken(r.Context(), bearerToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusUnauthorized, "Invalid refresh token")
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve refresh token")
+		return
+	}
+
+	if time.Now().After(dbToken.ExpiresAt) {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has expired")
+		return
+	} else if dbToken.RevokedAt.Valid {
+		respondWithError(w, http.StatusUnauthorized, "Refresh token has been revoked")
+		return
+	}
+
+	token, err := auth.MakeJWT(dbToken.UserID, cfg.JWTSecret, time.Hour)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create JWT token")
+		return
+	}
+
+	resToken := AccessToken{
+		Token: token,
+	}
+
+	respondWithJson(w, http.StatusOK, resToken)
+}
+
+func (cfg *apiConfig) revokeTokenHandler(w http.ResponseWriter, r *http.Request) {
+	bearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized: "+err.Error())
+		return
+	}
+
+	err = cfg.db.RevokeRefreshToken(r.Context(), bearerToken)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusUnauthorized, "Invalid refresh token")
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "Failed to revoke refresh token")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+	return
 }
