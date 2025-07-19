@@ -13,9 +13,10 @@ import (
 )
 
 type parameter struct {
-	Body   string    `json:"body"`
-	Email  string    `json:"email"`
-	USERID uuid.UUID `json:"user_id"`
+	Body     string    `json:"body"`
+	Email    string    `json:"email"`
+	USERID   uuid.UUID `json:"user_id"`
+	Password string    `json:"password"`
 }
 
 func main() {
@@ -50,6 +51,8 @@ func main() {
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)
 
 	mux.HandleFunc("POST /api/chirps", apiCfg.createChirpHandler)
+
+	mux.HandleFunc("POST /api/login", apiCfg.loginHandler)
 
 	server := &http.Server{
 		Handler: mux,

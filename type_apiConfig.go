@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync/atomic"
 
+	"github.com/VMT1312/Chirpy/internal/auth"
 	"github.com/VMT1312/Chirpy/internal/database"
 	"github.com/google/uuid"
 )
@@ -64,7 +65,17 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	dbUser, err := cfg.db.CreateUser(r.Context(), params.Email)
+	hashed_password, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
+	arg := database.CreateUserParams{
+		Email:          params.Email,
+		HashedPassword: hashed_password,
+	}
+	dbUser, err := cfg.db.CreateUser(r.Context(), arg)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create user")
 		return
@@ -171,4 +182,39 @@ func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	respondWithJson(w, http.StatusOK, chirp)
+}
+
+func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
+
+	params := parameter{}
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	dbUser, err := cfg.db.GetUserByEmail(r.Context(), params.Email)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+			return
+		}
+		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve user")
+		return
+	}
+
+	err = auth.CheckPasswordHash(params.Password, dbUser.HashedPassword)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Incorrect email or password")
+		return
+	}
+
+	user := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+
+	respondWithJson(w, http.StatusOK, user)
 }
