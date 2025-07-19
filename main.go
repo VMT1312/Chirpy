@@ -43,6 +43,8 @@ func main() {
 
 	mux.HandleFunc("GET /api/chirps", apiCfg.getAllChirpsHandler)
 
+	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.getChirpByIDHandler)
+
 	mux.HandleFunc("POST /admin/reset", apiCfg.resetUserTable)
 
 	mux.HandleFunc("POST /api/users", apiCfg.createUserHandler)

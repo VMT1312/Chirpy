@@ -15,7 +15,7 @@ Content-Type: application/json
 
 {
   "body": "If you're committed enough, you can make any story work.",
-  "user_id": "19bf343e-387b-4db7-a36e-00a43bbf25b2"
+  "user_id": "7e6ae492-3b78-4ce6-bc5a-e772f0941acb"
 }
 
 ### Create another chirp (should return 201)
@@ -24,8 +24,13 @@ Content-Type: application/json
 
 {
   "body": "I once told a woman I was Kevin Costner, and it worked because I believed it.",
-  "user_id": "19bf343e-387b-4db7-a36e-00a43bbf25b2"
+  "user_id": "7e6ae492-3b78-4ce6-bc5a-e772f0941acb"
 }
 
-### Test get all chirps (should return 200)
-GET http://localhost:8080/api/chirps
+### Test get chirp by ID (should return 200)
+GET http://localhost:8080/api/chirps/${chirpID}
+Content-Type: application/json
+
+{
+  "id": "ce1567ac-58bb-49b6-bb00-2aee90fd0c31"
+}
