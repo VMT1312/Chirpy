@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/VMT1312/Chirpy/internal/auth"
 	"github.com/VMT1312/Chirpy/internal/database"
@@ -17,6 +18,7 @@ type apiConfig struct {
 	fileserverHits atomic.Int32
 	db             *database.Queries
 	platform       string
+	JWTSecret      string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -92,6 +94,18 @@ func (cfg *apiConfig) createUserHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request) {
+	bearerToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized: "+err.Error())
+		return
+	}
+
+	userID, err := auth.ValidateJWT(bearerToken, cfg.JWTSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token: "+err.Error())
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 
 	params := parameter{}
@@ -114,7 +128,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 
 	arg := database.CreateChirpParams{
 		Body:   params.Body,
-		UserID: params.USERID,
+		UserID: userID,
 	}
 
 	dbChirp, err := cfg.db.CreateChirp(r.Context(), arg)
@@ -209,11 +223,25 @@ func (cfg *apiConfig) loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	tokenDuration := time.Duration(params.ExpiresIn) * time.Second
+	if tokenDuration == 0 || tokenDuration > time.Hour {
+		tokenDuration = time.Hour
+	} else {
+		tokenDuration = time.Hour
+	}
+
+	token, err := auth.MakeJWT(dbUser.ID, cfg.JWTSecret, tokenDuration)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create JWT token")
+		return
+	}
+
 	user := User{
 		ID:        dbUser.ID,
 		CreatedAt: dbUser.CreatedAt,
 		UpdatedAt: dbUser.UpdatedAt,
 		Email:     dbUser.Email,
+		Token:     token,
 	}
 
 	respondWithJson(w, http.StatusOK, user)

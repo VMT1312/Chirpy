@@ -13,10 +13,11 @@ import (
 )
 
 type parameter struct {
-	Body     string    `json:"body"`
-	Email    string    `json:"email"`
-	USERID   uuid.UUID `json:"user_id"`
-	Password string    `json:"password"`
+	Body      string    `json:"body"`
+	Email     string    `json:"email"`
+	USERID    uuid.UUID `json:"user_id"`
+	Password  string    `json:"password"`
+	ExpiresIn int64     `json:"expires_in_seconds"`
 }
 
 func main() {
@@ -32,8 +33,9 @@ func main() {
 
 	mux := http.NewServeMux()
 	apiCfg := &apiConfig{
-		db:       dbQueries,
-		platform: os.Getenv("PLATFORM"),
+		db:        dbQueries,
+		platform:  os.Getenv("PLATFORM"),
+		JWTSecret: os.Getenv("JWT_SECRET"),
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir("./app")))))
