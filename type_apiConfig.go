@@ -314,5 +314,50 @@ func (cfg *apiConfig) revokeTokenHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	w.WriteHeader(http.StatusNoContent)
-	return
+}
+
+func (cfg *apiConfig) updateUserHandler(w http.ResponseWriter, r *http.Request) {
+	accessToken, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized: "+err.Error())
+		return
+	}
+
+	userID, err := auth.ValidateJWT(accessToken, cfg.JWTSecret)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid token: "+err.Error())
+		return
+	}
+
+	params := parameter{}
+	decoder := json.NewDecoder(r.Body)
+	if err := decoder.Decode(&params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	hashedPassword, err := auth.HashPassword(params.Password)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to hash password")
+		return
+	}
+
+	arg := database.UpdatePasswordByIDParams{
+		HashedPassword: hashedPassword,
+		ID:             userID,
+		Email:          params.Email,
+	}
+	dbUser, err := cfg.db.UpdatePasswordByID(r.Context(), arg)
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to update password")
+		return
+	}
+
+	user := User{
+		ID:        dbUser.ID,
+		CreatedAt: dbUser.CreatedAt,
+		UpdatedAt: dbUser.UpdatedAt,
+		Email:     dbUser.Email,
+	}
+	respondWithJson(w, http.StatusOK, user)
 }
