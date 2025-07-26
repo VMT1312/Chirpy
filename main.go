@@ -39,6 +39,7 @@ func main() {
 		db:        dbQueries,
 		platform:  os.Getenv("PLATFORM"),
 		JWTSecret: os.Getenv("JWT_SECRET"),
+		polkaKey:  os.Getenv("POLKA_KEY"),
 	}
 
 	mux.Handle("/app/", http.StripPrefix("/app", apiCfg.middlewareMetricsInc(http.FileServer(http.Dir("./app")))))

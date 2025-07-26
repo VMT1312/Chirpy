@@ -19,6 +19,7 @@ type apiConfig struct {
 	db             *database.Queries
 	platform       string
 	JWTSecret      string
+	polkaKey       string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -414,6 +415,17 @@ func (cfg *apiConfig) deleteChirpHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) upgradeUserHandler(w http.ResponseWriter, r *http.Request) {
+	apiKey, err := auth.GetAPIKey(r.Header)
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Unauthorized: "+err.Error())
+		return
+	}
+
+	if apiKey != cfg.polkaKey {
+		respondWithError(w, http.StatusForbidden, "Invalid API key")
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 
 	params := parameter{}
@@ -427,7 +439,7 @@ func (cfg *apiConfig) upgradeUserHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	err := cfg.db.UpgradeUserByID(r.Context(), params.Data.UserID)
+	err = cfg.db.UpgradeUserByID(r.Context(), params.Data.UserID)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			respondWithError(w, http.StatusNotFound, "Chirp not found")
