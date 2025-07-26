@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sort"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -151,6 +152,7 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 
 func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request) {
 	s := r.URL.Query().Get("author_id")
+	order := r.URL.Query().Get("sort")
 	if s == "" {
 		dbChirps, err := cfg.db.GetAllChirps(r.Context())
 		if err != nil {
@@ -169,7 +171,17 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 			}
 		}
 
-		respondWithJson(w, http.StatusOK, chirps)
+		if order == "asc" || order == "" {
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+			})
+			respondWithJson(w, http.StatusOK, chirps)
+		} else {
+			sort.Slice(chirps, func(i, j int) bool {
+				return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+			})
+			respondWithJson(w, http.StatusOK, chirps)
+		}
 		return
 	}
 
@@ -199,7 +211,18 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 			UserID:    dbChirp.UserID.String(),
 		}
 	}
-	respondWithJson(w, http.StatusOK, chirps)
+
+	if order == "asc" || order == "" {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.Before(chirps[j].CreatedAt)
+		})
+		respondWithJson(w, http.StatusOK, chirps)
+	} else {
+		sort.Slice(chirps, func(i, j int) bool {
+			return chirps[i].CreatedAt.After(chirps[j].CreatedAt)
+		})
+		respondWithJson(w, http.StatusOK, chirps)
+	}
 }
 
 func (cfg *apiConfig) getChirpByIDHandler(w http.ResponseWriter, r *http.Request) {
