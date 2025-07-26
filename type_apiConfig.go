@@ -150,8 +150,41 @@ func (cfg *apiConfig) createChirpHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.db.GetAllChirps(r.Context())
+	s := r.URL.Query().Get("author_id")
+	if s == "" {
+		dbChirps, err := cfg.db.GetAllChirps(r.Context())
+		if err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
+			return
+		}
+
+		chirps := make([]Chirp, len(dbChirps))
+		for i, dbChirp := range dbChirps {
+			chirps[i] = Chirp{
+				ID:        dbChirp.ID.String(),
+				CreatedAt: dbChirp.CreatedAt,
+				UpdatedAt: dbChirp.UpdatedAt,
+				Body:      dbChirp.Body,
+				UserID:    dbChirp.UserID.String(),
+			}
+		}
+
+		respondWithJson(w, http.StatusOK, chirps)
+		return
+	}
+
+	userID, err := uuid.Parse(s)
 	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid user ID format")
+		return
+	}
+
+	dbChirps, err := cfg.db.GetChirpsByUserID(r.Context(), userID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			respondWithError(w, http.StatusNotFound, "Chirp not found")
+			return
+		}
 		respondWithError(w, http.StatusInternalServerError, "Failed to retrieve chirps")
 		return
 	}
@@ -166,7 +199,6 @@ func (cfg *apiConfig) getAllChirpsHandler(w http.ResponseWriter, r *http.Request
 			UserID:    dbChirp.UserID.String(),
 		}
 	}
-
 	respondWithJson(w, http.StatusOK, chirps)
 }
 
