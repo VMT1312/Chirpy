@@ -17,6 +17,10 @@ type parameter struct {
 	Email    string    `json:"email"`
 	USERID   uuid.UUID `json:"user_id"`
 	Password string    `json:"password"`
+	Event    string    `json:"event"`
+	Data     struct {
+		UserID uuid.UUID `json:"user_id"`
+	} `json:"data"`
 }
 
 func main() {
@@ -58,6 +62,8 @@ func main() {
 	mux.HandleFunc("POST /api/refresh", apiCfg.refreshTokenHandler)
 
 	mux.HandleFunc("POST /api/revoke", apiCfg.revokeTokenHandler)
+
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.upgradeUserHandler)
 
 	mux.HandleFunc("PUT /api/users", apiCfg.updateUserHandler)
 
